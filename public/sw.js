@@ -25,7 +25,11 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
-        .then(res => { caches.open(CACHE).then(c => c.put(BASE + 'index.html', res.clone())); return res; })
+        .then(res => {
+          const copy = res.clone(); // клонировать нужно сразу, до отдачи ответа странице
+          if (res.ok) caches.open(CACHE).then(c => c.put(BASE + 'index.html', copy));
+          return res;
+        })
         .catch(() => caches.match(BASE + 'index.html'))
     );
     return;
@@ -34,7 +38,8 @@ self.addEventListener('fetch', event => {
   // Остальное (JS, CSS, иконки): кэш, при промахе — сеть и сохранение.
   event.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
-      if (res.ok) caches.open(CACHE).then(c => c.put(req, res.clone()));
+      const copy = res.clone();
+      if (res.ok) caches.open(CACHE).then(c => c.put(req, copy));
       return res;
     }))
   );
